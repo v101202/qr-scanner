@@ -5,96 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сканер лояльности</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #17212b; color: #f5f6f7; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        #video { width: 100%; max-width: 400px; border-radius: 12px; background: #000; display: none; }
-        button { background-color: #5288c1; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 20px; }
-        #status { margin-top: 20px; font-size: 14px; color: #8aa; }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #17212b;
+            color: #f5f6f7;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        button {
+            background-color: #5288c1;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:active { background-color: #4676a8; }
     </style>
 </head>
 <body>
     <h2>Сканер карт ресторана</h2>
-    <video id="video" playsinline></video>
     <button id="scan-btn">📷 Открыть камеру</button>
-    <div id="status"></div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
-        const video = document.getElementById('video');
-        const status = document.getElementById('status');
-        const scanBtn = document.getElementById('scan-btn');
-        let stream = null;
-        let scanning = false;
-
-        // Hide the native scanner button and rely on our own UI
-        scanBtn.addEventListener('click', startScanner);
-
-        async function startScanner() {
-            scanBtn.style.display = 'none';
-            video.style.display = 'block';
-            status.textContent = 'Наведите камеру на QR-код...';
-
-            try {
-                // Request the rear camera for QR scanning
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' }
-                });
-                video.srcObject = stream;
-                await video.play();
-                scanning = true;
-                requestAnimationFrame(scanFrame);
-            } catch (err) {
-                status.textContent = 'Ошибка доступа к камере: ' + err.message;
-                resetButton();
-            }
-        }
-
-        function scanFrame() {
-            if (!scanning) return;
-
-            // Draw current video frame to a hidden canvas
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(imageData.data, imageData.width, imageData.height);
-
-            if (code) {
-                // QR found — stop everything immediately
-                scanning = false;
-                stopCamera();
-                video.style.display = 'none';
-                status.textContent = 'QR распознан! Отправляю...';
-
-                // Send data to bot and close
-                tg.sendData(code.data);
-                tg.close();
-                return;
-            }
-
-            // Keep scanning
-            requestAnimationFrame(scanFrame);
-        }
-
-        function stopCamera() {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
-            }
-        }
-
-        function resetButton() {
-            scanBtn.style.display = 'inline-block';
-            video.style.display = 'none';
-            stopCamera();
-        }
+        document.getElementById('scan-btn').addEventListener('click', () => {
+            tg.showScanQrPopup(
+                { text: "Наведите камеру на QR-код гостя" },
+                function(text) {
+                    if (text) {
+                        tg.sendData(text);
+                        tg.close();
+                    }
+                    return true; // This closes the native scanner popup
+                }
+            );
+        });
     </script>
 </body>
 </html>
