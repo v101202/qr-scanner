@@ -41,19 +41,22 @@
         tg.ready();
         tg.expand(); // Разворачиваем окно на весь экран
 alert(`platform=${tg.platform} version=${tg.version} initData=${tg.initData.length} chars`);
-        document.getElementById('scan-btn').addEventListener('click', () => {
-            // Вызываем нативный сканер Telegram
-            tg.showScanQrPopup({
-                text: "Наведите камеру на QR-код гостя"
-            }, function(text) {
-                // Когда код успешно считан:
-                // 1. Отправляем текст боту в чат
+document.getElementById('scan-btn').addEventListener('click', () => {
+    tg.showScanQrPopup(
+        { text: "Наведите камеру на QR-код гостя" },
+        function (text) {
+            alert("SCANNED: " + text);
+            try {
                 tg.sendData(text);
-                // 2. Закрываем WebApp окно автоматически
-                tg.close();
-                return true;
-            });
-        });
+                alert("sendData OK");
+            } catch (e) {
+                alert("sendData FAIL: " + e.message);
+            }
+            tg.close();
+            return true;
+        }
+    );
+});
     </script>
 </body>
 </html>
