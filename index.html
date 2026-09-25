@@ -37,38 +37,39 @@
     <div id="status"></div>
 
 <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
+const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
 
-    let handled = false;
+let scanHandled = false;
 
-    tg.onEvent('qr_text_received', (payload) => {
-        console.log('QR RECEIVED:', payload);
-        
-        // Close the scanner immediately
-        try {
-            tg.closeScanQrPopup();
-            console.log('Scanner close command sent');
-        } catch (e) {
-            console.error('Close failed:', e);
-        }
-        
-        // Prevent duplicate sends
-        if (handled) return;
-        handled = true;
-        
-        const text = payload.data;
-        if (text) {
-            tg.sendData(text);
-            tg.close();
-        }
-    });
+// Listen for the QR data event
+tg.onEvent('qr_text_received', (payload) => {
+    const text = payload && payload.data;
+    console.log('QR received:', text);
+    
+    // Close the scanner FIRST - this is what was missing
+    tg.closeScanQrPopup();
+    
+    // Prevent duplicate sends from repeated events
+    if (scanHandled) return;
+    scanHandled = true;
+    
+    if (text) {
+        tg.sendData(text);
+        tg.close();
+    }
+});
 
-    document.getElementById('scan-btn').addEventListener('click', () => {
-        handled = false;
-        tg.showScanQrPopup({ text: "Наведите камеру на QR-код 1" });
-    });
+// Reset the guard when scanner closes so button can be used again
+tg.onEvent('scan_qr_popup_closed', () => {
+    scanHandled = false;
+});
+
+document.getElementById('scan-btn').addEventListener('click', () => {
+    scanHandled = false;
+    tg.showScanQrPopup({ text: "Наведите камеру на QR-код 2" });
+});
 </script>
     
     
