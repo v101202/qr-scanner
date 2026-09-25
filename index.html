@@ -39,36 +39,53 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
-const btn = document.getElementById('scan-btn');
+let scannedText = null;
+let scannerClosed = false;
 
-// Remove any prior listener by cloning the node (nuclear but effective)
-const freshBtn = btn.cloneNode(true);
-btn.parentNode.replaceChild(freshBtn, btn);
+function tryFinish() {
+    if (!scannedText || !scannerClosed) return;
 
-freshBtn.addEventListener('click', () => {
-    let pendingText = null;
-    let finished = false;
+    // Both conditions met — proceed once
+    const text = scannedText;
+    scannedText = null;
+    scannerClosed = false;
 
-    const onClosed = () => {
-        if (finished) return;
-        finished = true;
-        tg.offEvent('scan_qr_popup_closed', onClosed);
-        console.log('scanner closed, pendingText =', pendingText);
+    console.log('Sending data and closing:', text);
+    tg.sendData(text);
 
-        if (pendingText) {
-            tg.sendData(pendingText);
-            tg.close();
-        }
-    };
+    // Small delay ensures web_app_data_send is flushed before close
+    setTimeout(() => {
+        tg.close();
+    }, 50);
+}
 
-    tg.onEvent('scan_qr_popup_closed', onClosed);
+// Capture the scanned text whenever the callback fires
+tg.onEvent('qr_text_received', (payload) => {
+    if (payload && payload.data) {
+        scannedText = payload.data;
+        console.log('qr_text_received:', scannedText);
+        tryFinish();
+    }
+});
+
+// Mark scanner as closed
+tg.onEvent('scan_qr_popup_closed', () => {
+    scannerClosed = true;
+    console.log('scan_qr_popup_closed, scannedText =', scannedText);
+    tryFinish();
+});
+
+document.getElementById('scan-btn').addEventListener('click', () => {
+    scannedText = null;
+    scannerClosed = false;
 
     tg.showScanQrPopup(
         { text: "Наведите камеру на QR-код гостя" },
-        (text) => {
-            console.log('scan callback fired, text =', text);
+        function(text) {
             if (text) {
-                pendingText = text;
+                scannedText = text;
+                console.log('callback fired:', scannedText);
+                tryFinish();
             }
             return true;
         }
