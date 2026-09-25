@@ -41,34 +41,23 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
-let scanHandled = false;
-
-// Listen for the QR data event
-tg.onEvent('qr_text_received', (payload) => {
-    const text = payload && payload.data;
-    console.log('QR received:', text);
+    console.log("Bot API version:", tg.version);
+console.log("closeScanQrPopup type:", typeof tg.closeScanQrPopup);
     
-    // Close the scanner FIRST - this is what was missing
-    tg.closeScanQrPopup();
-    
-    // Prevent duplicate sends from repeated events
-    if (scanHandled) return;
-    scanHandled = true;
-    
-    if (text) {
-        tg.sendData(text);
-        tg.close();
-    }
-});
-
-// Reset the guard when scanner closes so button can be used again
-tg.onEvent('scan_qr_popup_closed', () => {
-    scanHandled = false;
-});
-
 document.getElementById('scan-btn').addEventListener('click', () => {
-    scanHandled = false;
-    tg.showScanQrPopup({ text: "Наведите камеру на QR-код 2" });
+    tg.showScanQrPopup(
+        { text: "Наведите камеру на QR-код" },
+        function(text) {
+            console.log('Callback fired, text:', text);
+            
+            // This return true is what closes the popup
+            if (text) {
+                tg.sendData(text);
+                tg.close();
+            }
+            return true;  // CRITICAL: tells Telegram to close the scanner
+        }
+    );
 });
 </script>
     
