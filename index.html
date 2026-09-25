@@ -32,7 +32,7 @@
 </head>
 <body>
     <h2>Сканер карт ресторана</h2>
-    <button id="scan-btn">📷 Открыть камеру 2</button>
+    <button id="scan-btn">📷 Открыть камеру</button>
 
 <script>
 const tg = window.Telegram.WebApp;
@@ -80,7 +80,7 @@ document.getElementById('scan-btn').addEventListener('click', () => {
     scannerClosed = false;
 
     tg.showScanQrPopup(
-        { text: "Наведите камеру на QR-код гостя" },
+        { text: "Наведите камеру на QR-код гостя 1" },
         function(text) {
             if (text) {
                 scannedText = text;
