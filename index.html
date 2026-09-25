@@ -41,50 +41,36 @@
     tg.ready();
     tg.expand();
 
-    const status = document.getElementById('status');
-    let scanHandled = false;   // guard against the 5x repeated event
+    let handled = false;
 
-    // Telegram delivers the decoded QR here on Android/WebView.
-    // We must close the popup ourselves.
     tg.onEvent('qr_text_received', (payload) => {
-        const text = payload && payload.data;
-        console.log('qr_text_received:', text);
-
-        if (scanHandled) return;      // ignore the 4 duplicate deliveries
-        scanHandled = true;
-
-        // Close the native scanner popup — THIS is what was missing.
-        tg.closeScanQrPopup();
-
-        if (!text) {
-            status.textContent = "QR не распознан.";
-            return;
-        }
-
-        status.textContent = "Отправляю: " + text;
+        console.log('QR RECEIVED:', payload);
+        
+        // Close the scanner immediately
         try {
+            tg.closeScanQrPopup();
+            console.log('Scanner close command sent');
+        } catch (e) {
+            console.error('Close failed:', e);
+        }
+        
+        // Prevent duplicate sends
+        if (handled) return;
+        handled = true;
+        
+        const text = payload.data;
+        if (text) {
             tg.sendData(text);
             tg.close();
-        } catch (e) {
-            status.textContent = "Ошибка отправки: " + e.message;
-            console.error("sendData failed:", e);
         }
-    });
-
-    // Reset the guard whenever the scanner is closed, so the button
-    // can be used again for the next guest.
-    tg.onEvent('scan_qr_popup_closed', () => {
-        console.log('scan_qr_popup_closed');
-        scanHandled = false;
     });
 
     document.getElementById('scan-btn').addEventListener('click', () => {
-        scanHandled = false;
-        status.textContent = "Открываю камеру…";
-        tg.showScanQrPopup({ text: "Наведите камеру на QR-код гостя" });
-        // NOTE: no callback here. We rely on qr_text_received above.
+        handled = false;
+        tg.showScanQrPopup({ text: "Наведите камеру на QR-код" });
     });
 </script>
+    
     
 </body>
 </html>
