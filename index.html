@@ -42,32 +42,34 @@
         tg.expand();
 
         const status = document.getElementById('status');
-document.getElementById('scan-btn').addEventListener('click', async () => {
-    const params = { text: "Наведите камеру на QR-код гостя" };
 
-    // Try modern Promise form first
-    let text;
-    try {
-        const maybePromise = tg.showScanQrPopup(params);
-        if (maybePromise && typeof maybePromise.then === "function") {
-            text = await maybePromise;
-        } else {
-            // fallback: old callback form
-            text = await new Promise((resolve, reject) => {
-                tg.showScanQrPopup(params, (t) => { resolve(t); return true; });
-                // note: no reject path in old API
-            });
-        }
-    } catch (e) {
-        console.log("scan cancelled:", e);
-        return;
-    }
+        document.getElementById('scan-btn').addEventListener('click', async () => {
+            status.textContent = "Открываю камеру…";
+            let text;
+            try {
+                text = await tg.showScanQrPopup({
+                    text: "Наведите камеру на QR-код гостя"
+                });
+            } catch (e) {
+                status.textContent = "Сканирование отменено.";
+                console.log("scan cancelled:", e);
+                return;
+            }
 
-    if (text) {
-        tg.sendData(text);
-        tg.close();
-    }
-});
+            if (!text) {
+                status.textContent = "QR не распознан.";
+                return;
+            }
+
+            status.textContent = "Отправляю: " + text;
+            try {
+                tg.sendData(text);
+                tg.close();
+            } catch (e) {
+                status.textContent = "Ошибка отправки: " + e.message;
+                console.log("sendData failed:", e);
+            }
+        });
     </script>
 </body>
 </html>
