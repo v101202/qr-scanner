@@ -31,7 +31,7 @@
     </style>
 </head>
 <body>
-    <h2>Сканер карт ресторана</h2>
+    <h2>Сканер карт ресторана 2</h2>
     <button id="scan-btn">📷 Открыть камеру</button>
 
 <script>
@@ -80,11 +80,12 @@ document.getElementById('scan-btn').addEventListener('click', () => {
     scannerClosed = false;
 
     tg.showScanQrPopup(
-        { text: "Наведите камеру на QR-код гостя 1" },
+        { text: "Наведите камеру на QR-код гостя 2" },
         function(text) {
             if (text) {
                 scannedText = text;
                 console.log('callback fired:', scannedText);
+                scannerClosed = true;
                 tryFinish();
             }
             return true;
