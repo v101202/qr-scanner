@@ -32,23 +32,28 @@
 </head>
 <body>
     <h2>Сканер карт ресторана</h2>
-    <button id="scan-btn">📷 Открыть камеру 1</button>
+    <button id="scan-btn">📷 Открыть камеру 2</button>
 
 <script>
 const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
-document.getElementById('scan-btn').addEventListener('click', () => {
-    let pendingText = null;
-    let closed = false;
+const btn = document.getElementById('scan-btn');
 
-    // When Telegram confirms the scanner popup is actually closed,
-    // THEN send data and close the Mini App.
-    const onScannerClosed = () => {
-        if (closed) return;
-        closed = true;
-        tg.offEvent('scan_qr_popup_closed', onScannerClosed);
+// Remove any prior listener by cloning the node (nuclear but effective)
+const freshBtn = btn.cloneNode(true);
+btn.parentNode.replaceChild(freshBtn, btn);
+
+freshBtn.addEventListener('click', () => {
+    let pendingText = null;
+    let finished = false;
+
+    const onClosed = () => {
+        if (finished) return;
+        finished = true;
+        tg.offEvent('scan_qr_popup_closed', onClosed);
+        console.log('scanner closed, pendingText =', pendingText);
 
         if (pendingText) {
             tg.sendData(pendingText);
@@ -56,15 +61,16 @@ document.getElementById('scan-btn').addEventListener('click', () => {
         }
     };
 
-    tg.onEvent('scan_qr_popup_closed', onScannerClosed);
+    tg.onEvent('scan_qr_popup_closed', onClosed);
 
     tg.showScanQrPopup(
         { text: "Наведите камеру на QR-код гостя" },
-        function(text) {
+        (text) => {
+            console.log('scan callback fired, text =', text);
             if (text) {
                 pendingText = text;
             }
-            return true; // Ask Telegram to close the scanner popup
+            return true;
         }
     );
 });
