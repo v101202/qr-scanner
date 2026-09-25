@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сканер лояльности</title>
-    <!-- Подключаем официальный скрипт Telegram WebApp -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
@@ -29,34 +28,48 @@
             font-weight: bold;
         }
         button:active { background-color: #4676a8; }
+        #status { margin-top: 20px; font-size: 14px; color: #8aa; }
     </style>
 </head>
 <body>
     <h2>Сканер карт ресторана</h2>
     <button id="scan-btn">📷 Открыть камеру</button>
+    <div id="status"></div>
 
     <script>
-        // Инициализируем Telegram WebApp
         const tg = window.Telegram.WebApp;
         tg.ready();
-        tg.expand(); // Разворачиваем окно на весь экран
-alert(`platform=${tg.platform} version=${tg.version} initData=${tg.initData.length} chars`);
-document.getElementById('scan-btn').addEventListener('click', () => {
-    tg.showScanQrPopup(
-        { text: "Наведите камеру на QR-код гостя" },
-        function (text) {
-            alert("SCANNED: " + text);
+        tg.expand();
+
+        const status = document.getElementById('status');
+
+        document.getElementById('scan-btn').addEventListener('click', async () => {
+            status.textContent = "Открываю камеру…";
+            let text;
+            try {
+                text = await tg.showScanQrPopup({
+                    text: "Наведите камеру на QR-код гостя"
+                });
+            } catch (e) {
+                status.textContent = "Сканирование отменено.";
+                console.log("scan cancelled:", e);
+                return;
+            }
+
+            if (!text) {
+                status.textContent = "QR не распознан.";
+                return;
+            }
+
+            status.textContent = "Отправляю: " + text;
             try {
                 tg.sendData(text);
-                alert("sendData OK");
+                tg.close();
             } catch (e) {
-                alert("sendData FAIL: " + e.message);
+                status.textContent = "Ошибка отправки: " + e.message;
+                console.log("sendData failed:", e);
             }
-            tg.close();
-            return true;
-        }
-    );
-});
+        });
     </script>
 </body>
 </html>
