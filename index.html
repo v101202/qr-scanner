@@ -36,40 +36,55 @@
     <button id="scan-btn">📷 Открыть камеру</button>
     <div id="status"></div>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
 
-        const status = document.getElementById('status');
+    const status = document.getElementById('status');
+    let scanHandled = false;   // guard against the 5x repeated event
 
-        document.getElementById('scan-btn').addEventListener('click', async () => {
-            status.textContent = "Открываю камеру…";
-            let text;
-            try {
-                text = await tg.showScanQrPopup({
-                    text: "Наведите камеру на QR-код гостя"
-                });
-            } catch (e) {
-                status.textContent = "Сканирование отменено.";
-                console.log("scan cancelled:", e);
-                return;
-            }
+    // Telegram delivers the decoded QR here on Android/WebView.
+    // We must close the popup ourselves.
+    tg.onEvent('qr_text_received', (payload) => {
+        const text = payload && payload.data;
+        console.log('qr_text_received:', text);
 
-            if (!text) {
-                status.textContent = "QR не распознан.";
-                return;
-            }
+        if (scanHandled) return;      // ignore the 4 duplicate deliveries
+        scanHandled = true;
 
-            status.textContent = "Отправляю: " + text;
-            try {
-                tg.sendData(text);
-                tg.close();
-            } catch (e) {
-                status.textContent = "Ошибка отправки: " + e.message;
-                console.log("sendData failed:", e);
-            }
-        });
-    </script>
+        // Close the native scanner popup — THIS is what was missing.
+        tg.closeScanQrPopup();
+
+        if (!text) {
+            status.textContent = "QR не распознан.";
+            return;
+        }
+
+        status.textContent = "Отправляю: " + text;
+        try {
+            tg.sendData(text);
+            tg.close();
+        } catch (e) {
+            status.textContent = "Ошибка отправки: " + e.message;
+            console.error("sendData failed:", e);
+        }
+    });
+
+    // Reset the guard whenever the scanner is closed, so the button
+    // can be used again for the next guest.
+    tg.onEvent('scan_qr_popup_closed', () => {
+        console.log('scan_qr_popup_closed');
+        scanHandled = false;
+    });
+
+    document.getElementById('scan-btn').addEventListener('click', () => {
+        scanHandled = false;
+        status.textContent = "Открываю камеру…";
+        tg.showScanQrPopup({ text: "Наведите камеру на QR-код гостя" });
+        // NOTE: no callback here. We rely on qr_text_received above.
+    });
+</script>
+    
 </body>
 </html>
