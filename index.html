@@ -40,7 +40,7 @@
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand(); // Разворачиваем окно на весь экран
-
+alert(`platform=${tg.platform} version=${tg.version} initData=${tg.initData.length} chars`);
         document.getElementById('scan-btn').addEventListener('click', () => {
             // Вызываем нативный сканер Telegram
             tg.showScanQrPopup({
