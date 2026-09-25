@@ -32,26 +32,42 @@
 </head>
 <body>
     <h2>Сканер карт ресторана</h2>
-    <button id="scan-btn">📷 Открыть камеру</button>
+    <button id="scan-btn">📷 Открыть камеру 1</button>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+<script>
+const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
 
-        document.getElementById('scan-btn').addEventListener('click', () => {
-            tg.showScanQrPopup(
-                { text: "Наведите камеру на QR-код гостя" },
-                function(text) {
-                    if (text) {
-                        tg.sendData(text);
-                        tg.close();
-                    }
-                    return true;
-                }
-                return true;
-            );
-        });
-    </script>
+document.getElementById('scan-btn').addEventListener('click', () => {
+    let pendingText = null;
+    let closed = false;
+
+    // When Telegram confirms the scanner popup is actually closed,
+    // THEN send data and close the Mini App.
+    const onScannerClosed = () => {
+        if (closed) return;
+        closed = true;
+        tg.offEvent('scan_qr_popup_closed', onScannerClosed);
+
+        if (pendingText) {
+            tg.sendData(pendingText);
+            tg.close();
+        }
+    };
+
+    tg.onEvent('scan_qr_popup_closed', onScannerClosed);
+
+    tg.showScanQrPopup(
+        { text: "Наведите камеру на QR-код гостя" },
+        function(text) {
+            if (text) {
+                pendingText = text;
+            }
+            return true; // Ask Telegram to close the scanner popup
+        }
+    );
+});
+</script>
 </body>
 </html>
